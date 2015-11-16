@@ -115,13 +115,17 @@ task buildGradleImage(type: DockerBuildImage) {
 
 // Create gradle container
 task createGradleContainer(type: DockerCreateContainer) {
-    dependsOn buildGradleImage
+    dependsOn buildGradleImage, startTomEEContainer
     imageId = buildGradleImage.tag
+
     attachStderr = true
     attachStdout = true
+
     def localPath = project.file('build/dockerized-tests/build').path;
     binds = new HashMap<>()
     binds.put(localPath, "/usr/bin/app/build")
+
+    links = [ "tomee:tomee"]
 }
 
 // Remove gradle container
@@ -143,11 +147,18 @@ task waitGradleContainer(type: DockerWaitContainer) {
     targetContainerId { createGradleContainer.getContainerId() }
 }
 
+task testReportTask(type: TestReport) {
+    destinationDir = file('build/test-results')
+    reportOn file('build/dockerized-tests/build/test-results/binary/test')
+}
+
 // Launch tests into a gradle dokcer container and wait for them to finish
-task runDockerizedTests(type:Test) {
+task runDockerizedTests() {
     dependsOn waitGradleContainer
-    binResultsDir = file('build/dockerized-tests/build/test-results')
-    finalizedBy removeGradleContainer
+
+    ///TOOO Find a way to fail properly
+
+    finalizedBy removeGradleContainer, stopTomEEContainer, testReportTask
 }
 
 // Test definition
