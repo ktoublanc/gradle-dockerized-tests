@@ -4,13 +4,9 @@ version '1.0.0-SNAPSHOT'
 apply plugin: 'java'
 apply plugin: 'com.bmuschko.docker-remote-api'
 
-import com.bmuschko.gradle.docker.tasks.container.DockerCreateContainer
-import com.bmuschko.gradle.docker.tasks.container.DockerRemoveContainer
-import com.bmuschko.gradle.docker.tasks.container.DockerStartContainer
-import com.bmuschko.gradle.docker.tasks.container.DockerWaitContainer
-import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
-import com.bmuschko.gradle.docker.tasks.image.DockerRemoveImage
-import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+
+import com.bmuschko.gradle.docker.tasks.container.*
+import com.bmuschko.gradle.docker.tasks.image.*
 
 repositories {
     mavenCentral()
@@ -45,6 +41,38 @@ docker {
     certPath = new File(System.getProperty("user.home")+ "/.docker/machine/machines/default")
 }
 
+// TomEE Pull Image
+task pullTomEEImage(type: DockerPullImage) {
+    repository =  "tomee"
+    tag = "7-jre-1.7.2-plus"
+}
+
+// TomEE Create Container
+task createTomEEContainer(type: DockerCreateContainer) {
+    dependsOn pullTomEEImage
+    imageId = "${pullTomEEImage.repository}:${pullTomEEImage.tag}"
+    containerName = "tomee"
+}
+
+// Remove TomEE Container
+task removeTomEEContainer(type: DockerRemoveContainer) {
+    dependsOn createTomEEContainer
+    targetContainerId { createTomEEContainer.getContainerId() }
+    // finalizedBy removeTomEEImage
+}
+
+// TomEE start container
+task startTomEEContainer(type: DockerStartContainer) {
+    dependsOn createTomEEContainer
+    targetContainerId { createTomEEContainer.getContainerId() }
+}
+
+// Stop TomEE container
+task stopTomEEContainer(type: DockerStopContainer) {
+    dependsOn startTomEEContainer
+    targetContainerId { createTomEEContainer.getContainerId() }
+    finalizedBy removeTomEEContainer
+}
 
 // Copy src into build directory
 task copySources(type: Copy) {
