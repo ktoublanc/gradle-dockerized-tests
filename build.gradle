@@ -38,7 +38,7 @@ dependencies {
 docker {
     // For MAC OS X
     url = 'https://192.168.99.100:2376'
-    certPath = new File(System.getProperty("user.home")+ "/.docker/machine/machines/default")
+    certPath = new File(System.getProperty("user.home") + "/.docker/machine/machines/default")
 }
 
 // TomEE Pull Image
@@ -79,25 +79,26 @@ task copySources(type: Copy) {
     from "${projectDir}/src/main/"
     into "${buildDir}/dockerized-tests/src/main"
 }
+
 task copyTestSources(type: Copy) {
     from "${projectDir}/src/test/"
     into "${buildDir}/dockerized-tests/src/test"
 }
 
+task copyContainerFiles(type: Copy) {
+    from "${projectDir}/src/gradle/"
+    into "${buildDir}/dockerized-tests/"
+}
+
 // Create gradle docker file
 task createGradleDockerfile(type: Dockerfile) {
-    dependsOn copySources, copyTestSources
+    dependsOn copySources, copyTestSources, copyContainerFiles
     destFile = project.file('build/dockerized-tests/Dockerfile')
     from 'niaquinto/gradle:latest'
-    maintainer 'Kévin Toublanc "ktc@yopmail.com"'
-
-    addFile("src/main" , "/usr/bin/app/src/main")
-    addFile("src/test" , "/usr/bin/app/src/test")
-    addFile("src/main/gradle/build.gradle", "/usr/bin/app/build.gradle")
-    addFile("src/main/gradle/entrypoint.sh", "/usr/src/entrypoint.sh")
+    maintainer 'Kévin Toublanc "kevin.toublanc@gmail.com"'
 
     defaultCommand("clean", "build")
-    entryPoint("/usr/src/entrypoint.sh")
+    entryPoint("/usr/bin/app/entrypoint.sh")
 }
 
 // Remove gradle dokcer image
@@ -121,9 +122,9 @@ task createGradleContainer(type: DockerCreateContainer) {
     attachStderr = true
     attachStdout = true
 
-    def localPath = project.file('build/dockerized-tests/build').path;
+    def localPath = project.file('build/dockerized-tests').path;
     binds = new HashMap<>()
-    binds.put(localPath, "/usr/bin/app/build")
+    binds.put(localPath, "/usr/bin/app")
 
     links = [ "tomee:tomee"]
 }
